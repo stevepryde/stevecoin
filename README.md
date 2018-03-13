@@ -129,7 +129,8 @@ List all balances (the genesis balance should now show up):
 Transfer some coin from the genesis address to the new address:
 
     $ python client.py --transfer --src 1NZ4xx9bgTCzdjXzDA2bEGfr2opCkJh6UX --dest 14emQmpLXA1KbT2BT6Yt87MAgGcdJaYkZH --amount 100
-    Please enter your master password:Server: http://localhost:5000
+    Please enter your master password:
+    Server: http://localhost:5000
     Transaction submitted successfully:
     Input address: 1NZ4xx9bgTCzdjXzDA2bEGfr2opCkJh6UX
     Transferred 100 to address: 14emQmpLXA1KbT2BT6Yt87MAgGcdJaYkZH
