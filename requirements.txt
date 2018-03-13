@@ -1,0 +1,6 @@
+pycryptodomex
+bottle
+plyvel
+base58
+ecdsa
+requests
