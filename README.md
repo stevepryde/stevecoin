@@ -47,7 +47,3 @@ instructions. The general workflow is:
 1. Start the server (creates a new blockchain on first run)
 2. Start the miner
 3. Use the client to create addresses and transfer coins
-
-## Known Issues
-
-See [BUGS.md](BUGS.md) for bugs discovered during the Rust port (all fixed).
