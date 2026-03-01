@@ -47,8 +47,14 @@ class BlockDB:
         self.base_dir = base_dir
         self.indexfile = os.path.join(self.base_dir, "index.db")
         self.db = plyvel.DB(self.indexfile, create_if_missing=True)
-        self.num_blocks = self.db.get(b"sc_numblocks") or 0
-        self.pow_difficulty = self.db.get(b"sc_pow") or INITIAL_POW
+        raw_num_blocks = self.db.get(b"sc_numblocks")
+        self.num_blocks = unpackint(raw_num_blocks) if raw_num_blocks else 0
+        raw_pow = self.db.get(b"sc_pow")
+        if raw_pow:
+            self.pow_difficulty = unpackint(raw_pow)
+        else:
+            self.pow_difficulty = INITIAL_POW
+            self.db.put(b"sc_pow", packint(self.pow_difficulty))
         return
 
     def consistency_check(self, q: 'QueryLayer') -> None:

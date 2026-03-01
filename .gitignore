@@ -4,3 +4,5 @@ __pycache__/
 *.pem
 blockdata/
 config.sc
+DS_Store
+target/

@@ -22,7 +22,7 @@ CHAIN = None
 @get('/ping')
 def ping():
     """Do basic test function."""
-    return"pong"
+    return "pong"
 
 
 @get('/miner')
@@ -33,7 +33,7 @@ def mine_it():
         num_blocks = CHAIN.q.get_num_blocks()
         last_block = CHAIN.q.get_block(num_blocks - 1)
 
-        return{
+        return {
             'txlist': [x.serialise() for x in txlist],
             'num_blocks': num_blocks,
             'prev_hash': last_block.hash.serialise(),
@@ -193,7 +193,7 @@ def block_submit():
         # Delete transactions from pending.
         for tx in block.transactions:
             CHAIN.transdb.delete_transaction(tx.txid)
-        return"SUCCESS"
+        return "SUCCESS"
     except BlockValidationError as exc:
         abort(400, "Invalid block: {}".format(exc))
     except BlockChainError:
@@ -251,7 +251,8 @@ if __name__ == '__main__':
         sys.exit(1)
 
     try:
-        port = int(os.environ.get('BLOCKCHAIN_PORT')) or 5000
+        port_str = os.environ.get('BLOCKCHAIN_PORT')
+        port = int(port_str) if port_str is not None else 5000
     except (TypeError, ValueError):
         port = 5000
 

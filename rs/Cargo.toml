@@ -1,0 +1,53 @@
+[package]
+name = "stevecoin"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "server"
+path = "src/bin/server.rs"
+
+[[bin]]
+name = "client"
+path = "src/bin/client.rs"
+
+[[bin]]
+name = "miner"
+path = "src/bin/miner.rs"
+
+[dependencies]
+# Crypto
+sha3 = "0.10"
+sha2 = "0.10"
+ripemd = "0.1"
+k256 = { version = "0.13", features = ["ecdsa"] }
+aes = "0.8"
+eax = "0.5"
+bs58 = { version = "0.5", features = ["check"] }
+hex = "0.4"
+rand = "0.8"
+digest = "0.10"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.22"
+
+# Server
+axum = "0.7"
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.5", features = ["cors"] }
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json", "blocking"] }
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+rpassword = "7"
+
+# Database
+rusty-leveldb = "3"
+
+# Error handling
+thiserror = "2"
+anyhow = "1"

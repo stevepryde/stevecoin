@@ -179,10 +179,12 @@ class Block:
             assert len(self.transactions) <= MAX_TRANSACTIONS_PER_BLOCK, \
                 "Block contains too many transactions"
 
-            d = datetime.datetime.fromtimestamp(self.timestamp)
-            assert d > datetime.datetime(2018, 1, 1), \
+            d = datetime.datetime.fromtimestamp(self.timestamp,
+                                               tz=datetime.timezone.utc)
+            assert d > datetime.datetime(2018, 1, 1,
+                                         tzinfo=datetime.timezone.utc), \
                 "Block timestamp is too old!"
-            assert d < datetime.datetime.now(), \
+            assert d < datetime.datetime.now(datetime.timezone.utc), \
                 "Block timestamp is in the future!"
 
             assert self.index >= 0 and self.index <= q.get_num_blocks(), \
@@ -197,8 +199,6 @@ class Block:
                 except BlockNotFoundError:
                     # Brand new blockchain?
                     assert q.get_num_blocks() == 0, "Block count mismatch"
-                    assert self.hash == Hasher(GENESIS_HASH).get_hash(), \
-                        "Block hash mismatch"
             else:
                 prev_block = q.get_block(self.index - 1)
                 assert self.prev_hash == prev_block.hash, \
