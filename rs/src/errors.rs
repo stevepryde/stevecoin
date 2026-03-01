@@ -37,6 +37,12 @@ pub enum BlockChainError {
     #[error("Crypto error: {0}")]
     Crypto(String),
 
+    #[error("Rollback failed: {0}")]
+    RollbackFailed(String),
+
+    #[error("Network error: {0}")]
+    Network(String),
+
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 

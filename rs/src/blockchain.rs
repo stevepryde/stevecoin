@@ -61,6 +61,10 @@ impl BlockChain {
         self.blockdb.write_new_block(block, true)
     }
 
+    pub fn rollback_block(&mut self) -> Result<Block> {
+        self.blockdb.rollback_block()
+    }
+
     pub fn delete_pending_transaction(&mut self, txid: &Hash) -> Result<()> {
         self.transdb.delete_transaction(txid)
     }

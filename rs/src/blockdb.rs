@@ -285,6 +285,93 @@ impl BlockDB {
         Ok(())
     }
 
+    pub fn reverse_transaction_indexes(&mut self, block: &Block) -> Result<()> {
+        let genesis_txid = crate::crypto::Hasher::new_with_message(b"Genesis").get_hash();
+
+        for trans in &block.transactions {
+            // Delete txid_{hash} entry
+            let txkey = self.get_key_for_transaction(&trans.txid);
+            let _ = self.db.delete(&txkey);
+
+            // Delete UTXO entries for outputs (undo created UTXOs)
+            for output in &trans.outputs {
+                let utxokey = self.get_key_for_utxo(&trans.txid, &output.address);
+                let _ = self.db.delete(&utxokey);
+            }
+
+            // Restore UTXO entries for inputs (re-insert spent UTXOs)
+            for txinput in &trans.inputs {
+                let addr = ECDSAPublicKey::from_hash(&txinput.pubkey)?.get_address();
+                if txinput.txid == genesis_txid {
+                    // Genesis input — restore with TOTAL_COINS
+                    let utxokey = self.get_key_for_utxo(&txinput.txid, &addr);
+                    self.db
+                        .put(&utxokey, &packint(crate::blockchain::TOTAL_COINS))
+                        .map_err(|e| {
+                            BlockChainError::RollbackFailed(format!("DB write failed: {e}"))
+                        })?;
+                } else {
+                    // Look up the source transaction to find the output amount
+                    let source_tx = self.get_transaction(&txinput.txid)?;
+                    let mut found = false;
+                    for output in &source_tx.outputs {
+                        if output.address == addr {
+                            let utxokey = self.get_key_for_utxo(&txinput.txid, &addr);
+                            self.db
+                                .put(&utxokey, &packint(output.amount))
+                                .map_err(|e| {
+                                    BlockChainError::RollbackFailed(format!(
+                                        "DB write failed: {e}"
+                                    ))
+                                })?;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if !found {
+                        return Err(BlockChainError::RollbackFailed(format!(
+                            "Could not find matching output for input txid {}",
+                            txinput.txid.to_hex()
+                        )));
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub fn rollback_block(&mut self) -> Result<Block> {
+        if self.num_blocks <= 1 {
+            return Err(BlockChainError::RollbackFailed(
+                "Cannot roll back genesis block".into(),
+            ));
+        }
+
+        let block_index = self.num_blocks - 1;
+        let block = self.get_block(block_index)?;
+
+        // Reverse transaction indexes
+        self.reverse_transaction_indexes(&block)?;
+
+        // Get block offset and truncate the .blk file
+        let offset = self.get_block_offset(block_index)?;
+        let blockfile = self.get_filename_for_block(block_index);
+        let f = OpenOptions::new().write(true).open(&blockfile)?;
+        f.set_len(offset as u64)?;
+
+        // Delete block key from LevelDB
+        let key = self.get_key_for_block(block_index);
+        let _ = self.db.delete(&key);
+
+        // Decrement num_blocks and persist
+        self.num_blocks -= 1;
+        self.db
+            .put(b"sc_numblocks", &packint(self.num_blocks))
+            .map_err(|e| BlockChainError::RollbackFailed(format!("DB write failed: {e}")))?;
+
+        Ok(block)
+    }
+
     pub fn get_utxo_amount(&mut self, txid: &Hash, address: &CryptoAddress) -> Result<u64> {
         let utxokey = self.get_key_for_utxo(txid, address);
         match self.db.get(&utxokey) {

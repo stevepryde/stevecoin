@@ -15,6 +15,10 @@ struct Cli {
     /// The blockchain server URL
     #[arg(long)]
     server: String,
+
+    /// Poll interval in seconds when waiting for transactions
+    #[arg(long, default_value = "60")]
+    sleep: u64,
 }
 
 #[derive(Deserialize)]
@@ -28,6 +32,7 @@ struct MinerResponse {
 fn main() {
     let cli = Cli::parse();
     let server_url = &cli.server;
+    let sleep_secs = cli.sleep;
     let client = reqwest::blocking::Client::new();
 
     println!("Server: {server_url}");
@@ -60,7 +65,7 @@ fn main() {
         };
 
         if data.txlist.is_empty() {
-            thread::sleep(Duration::from_secs(60));
+            thread::sleep(Duration::from_secs(sleep_secs));
             continue;
         }
 
@@ -69,7 +74,8 @@ fn main() {
             Ok(h) => h,
             Err(e) => {
                 eprintln!("Invalid prev_hash from server: {e}");
-                std::process::exit(1);
+                thread::sleep(Duration::from_secs(10));
+                continue;
             }
         };
         let pow_difficulty = data.pow;
@@ -86,7 +92,8 @@ fn main() {
             Ok(t) => t,
             Err(e) => {
                 eprintln!("Error deserialising transactions: {e}");
-                std::process::exit(1);
+                thread::sleep(Duration::from_secs(10));
+                continue;
             }
         };
 
@@ -94,7 +101,8 @@ fn main() {
             Ok(b) => b,
             Err(e) => {
                 eprintln!("Error creating block: {e}");
-                std::process::exit(1);
+                thread::sleep(Duration::from_secs(10));
+                continue;
             }
         };
 
@@ -113,13 +121,13 @@ fn main() {
             Ok(r) => r,
             Err(e) => {
                 eprintln!("Error submitting block: {e}");
-                std::process::exit(1);
+                continue;
             }
         };
 
         if r.status() != 200 {
             eprintln!("Error submitting block: {}", r.text().unwrap_or_default());
-            std::process::exit(1);
+            continue;
         }
 
         println!("Successfully mined block {next_index}");
