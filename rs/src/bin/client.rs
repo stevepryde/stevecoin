@@ -44,7 +44,7 @@ fn load_config(master_password: &str) -> anyhow::Result<Config> {
     if !Path::new(&config_path).exists() {
         println!("Config file not found. It will be created...");
         let config = Config {
-            server: "http://localhost:5000".to_string(),
+            server: "http://localhost:5001".to_string(),
             pks: Vec::new(),
         };
         save_config(&config, master_password)?;

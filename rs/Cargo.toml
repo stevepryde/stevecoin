@@ -36,7 +36,8 @@ base64 = "0.22"
 # Server
 axum = "0.7"
 tokio = { version = "1", features = ["full"] }
-tower-http = { version = "0.5", features = ["cors"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "normalize-path"] }
 
 # HTTP client
 reqwest = { version = "0.12", features = ["json", "blocking"] }

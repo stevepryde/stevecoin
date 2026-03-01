@@ -11,8 +11,10 @@ use axum::extract::{Path as AxumPath, State};
 use axum::http::StatusCode;
 use axum::response::Json;
 use axum::routing::{get, post};
-use axum::Router;
+use axum::{Router, ServiceExt};
 use serde::{Deserialize, Serialize};
+use tower::Layer;
+use tower_http::normalize_path::NormalizePathLayer;
 
 use stevecoin::block::Block;
 use stevecoin::blockchain::BlockChain;
@@ -46,12 +48,15 @@ async fn miner_info(
     let mut chain = chain.lock().unwrap();
     let txlist = chain
         .get_pending_transactions()
-        .map_err(|_| err_response(StatusCode::BAD_REQUEST, "Blockchain error"))?;
+        .map_err(|e| err_response(StatusCode::BAD_REQUEST, &format!("Blockchain error: {e}")))?;
 
     let num_blocks = chain.get_num_blocks();
+    if num_blocks == 0 {
+        return Err(err_response(StatusCode::BAD_REQUEST, "No blocks in blockchain"));
+    }
     let last_block = chain
         .get_block(num_blocks - 1)
-        .map_err(|_| err_response(StatusCode::BAD_REQUEST, "Blockchain error"))?;
+        .map_err(|e| err_response(StatusCode::BAD_REQUEST, &format!("Blockchain error: {e}")))?;
 
     let txlist_serialised: Vec<String> = txlist
         .iter()
@@ -341,7 +346,7 @@ async fn main() {
     let port: u16 = env::var("BLOCKCHAIN_PORT")
         .ok()
         .and_then(|p| p.parse().ok())
-        .unwrap_or(5000);
+        .unwrap_or(5001);
 
     let shared_chain = Arc::new(Mutex::new(chain));
 
@@ -357,9 +362,13 @@ async fn main() {
         .route("/block/submit", post(block_submit))
         .with_state(shared_chain);
 
+    let app = NormalizePathLayer::trim_trailing_slash().layer(app);
+
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
     println!("Starting server on port {port} ...\n");
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, ServiceExt::<axum::extract::Request>::into_make_service(app))
+        .await
+        .unwrap();
 }

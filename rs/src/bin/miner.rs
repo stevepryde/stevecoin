@@ -43,9 +43,11 @@ fn main() {
             }
         };
 
-        if r.status() != 200 {
-            eprintln!("Error getting pending transactions");
-            std::process::exit(1);
+        let status = r.status();
+        if status != 200 {
+            eprintln!("Error getting miner info (HTTP {}): {}", status, r.text().unwrap_or_default());
+            thread::sleep(Duration::from_secs(10));
+            continue;
         }
 
         let data: MinerResponse = match r.json() {
